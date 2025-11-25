@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 异地恋协作养猫：小萌喵养成记</title>
+    <title>🐱 小胡和小菜的小喵喵</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Inter 字体 -->
@@ -20,6 +20,10 @@
         }
         .cat-visual:active {
             transform: scale(1.1) rotate(5deg);
+        }
+        /* Modal Backdrop */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
         }
     </style>
     <!-- Tailwind 配置 -->
@@ -41,7 +45,8 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <!-- 主应用容器 -->
-    <div id="app" class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50">
+    <!-- 初始设置为隐藏，直到用户信息加载完毕 -->
+    <div id="app-content" class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50 opacity-0 transition duration-500">
 
         <!-- 顶部状态栏 -->
         <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -121,6 +126,10 @@
         
         <!-- 用户信息和提示 -->
         <div class="mt-8 pt-4 border-t text-center text-sm text-gray-400">
+            <p>
+                当前用户：<span id="current-user-name" class="font-semibold text-text-dark">Loading...</span>
+                <button onclick="showNameModal(true)" class="text-xs text-primary-pink hover:text-pink-600 ml-2">(修改)</button>
+            </p>
             <p>共同养育者ID：<span id="current-user-id" class="font-mono text-xs select-all">Loading...</span></p>
             <p class="mt-2 text-xs text-red-500/80">⚠️ 请将此页面发给你的女朋友。你们将共享这只小猫的状态！</p>
         </div>
@@ -130,12 +139,24 @@
     <!-- 弹窗/Toast 区域 -->
     <div id="toast-container" class="fixed bottom-5 right-5 space-y-2 z-50"></div>
 
+    <!-- 模态框：设置用户名字 -->
+    <div id="name-modal" class="fixed inset-0 modal-overlay z-50 flex items-center justify-center hidden">
+        <div class="bg-bg-light p-8 rounded-xl shadow-2xl w-full max-w-sm border-4 border-secondary-yellow/50">
+            <h3 class="text-2xl font-bold text-primary-pink mb-4">欢迎加入！</h3>
+            <p class="mb-4 text-text-dark">请为你自己设置一个可爱的名字，这样喵喵就知道是谁在照顾它了。</p>
+            <input type="text" id="name-input" maxlength="10" placeholder="例如：猫咪主人/喵爸/小可爱" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-pink focus:border-primary-pink transition duration-150 text-text-dark">
+            <button onclick="saveUserName()" id="save-name-btn" class="w-full mt-6 bg-primary-pink hover:bg-pink-600 text-white font-bold py-3 rounded-xl shadow-lg transition duration-300">
+                保存名字
+            </button>
+        </div>
+    </div>
+
 
     <!-- 引入 Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, runTransaction, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, runTransaction, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // IMPORTANT: Use a fixed ID for external deployment
         const appId = 'travel-meow-app'; // 固定应用ID
@@ -153,12 +174,12 @@
         };
         // =======================================================================
 
-        // 在 GitHub Pages 上无法使用 Canvas 提供的认证 Token，我们将使用匿名登录。
         const initialAuthToken = null; 
         
         // --- Firebase Initialization ---
         let app, db, auth, userId = null;
         let isAuthReady = false;
+        let userName = '未知用户'; // 新增：用户名字状态
         
         // Global state for the cat
         let catState = {
@@ -166,10 +187,12 @@
             currency: 0,
             lastVisitTimestamp: serverTimestamp(),
             lastInteractionUserId: 'N/A',
+            lastInteractionUserName: '系统', // 新增：保存上次互动用户名
             catName: '小萌喵',
         };
 
         // UI elements
+        const appContent = document.getElementById('app-content');
         const moodBar = document.getElementById('mood-bar');
         const moodValueSpan = document.getElementById('mood-value');
         const currencyValueSpan = document.getElementById('currency-value');
@@ -177,7 +200,11 @@
         const catVisual = document.getElementById('cat-visual');
         const catMessage = document.getElementById('cat-message');
         const currentUserIdDisplay = document.getElementById('current-user-id');
+        const currentUserNameDisplay = document.getElementById('current-user-name');
         const toastContainer = document.getElementById('toast-container');
+        const appContainer = document.getElementById('app');
+        const nameModal = document.getElementById('name-modal');
+        const nameInput = document.getElementById('name-input');
         
         // Game Constants
         const MOOD_DECAY_RATE = 5; // Mood points lost every DECAY_INTERVAL_MS
@@ -186,9 +213,20 @@
         // --- Utility Functions ---
 
         /**
+         * 显示/隐藏名字设置模态框
+         * @param {boolean} show - true 显示, false 隐藏
+         */
+        window.showNameModal = function(show) {
+            if (show) {
+                nameModal.classList.remove('hidden');
+                nameInput.value = userName === '未知用户' ? '' : userName; // 预填充当前名字
+            } else {
+                nameModal.classList.add('hidden');
+            }
+        }
+
+        /**
          * 显示一个临时通知 (Toast)
-         * @param {string} message - 消息内容
-         * @param {string} type - success, error, or info
          */
         function showToast(message, type = 'info') {
             const colors = {
@@ -220,9 +258,6 @@
 
         /**
          * 计算心清衰减
-         * @param {number} currentMood - 当前心情值
-         * @param {number} lastVisitMs - 上次访问时间戳 (毫秒)
-         * @returns {number} - 衰减后的心情值
          */
         function calculateMoodDecay(currentMood, lastVisitMs) {
             const now = Date.now();
@@ -277,61 +312,65 @@
                 catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
             }
             
-            // Last Interaction Info
+            // Last Interaction Info (使用保存的用户名)
             const lastTime = catState.lastVisitTimestamp ? new Date(catState.lastVisitTimestamp).toLocaleString('zh-CN') : '从未';
-            const interactionUser = catState.lastInteractionUserId === userId ? '你' : 'TA';
-            lastInteractionP.innerHTML = `上次互动：${interactionUser} 在 ${lastTime}`;
+            const interactionUserName = catState.lastInteractionUserId === userId ? userName : catState.lastInteractionUserName;
+            lastInteractionP.innerHTML = `上次互动：${interactionUserName} 在 ${lastTime}`;
+            
+            // 当前用户名字显示
+            currentUserNameDisplay.textContent = userName;
+            appContent.classList.remove('opacity-0'); // 显示应用内容
         }
 
         // --- Firestore Functions ---
 
         /**
-         * 获取猫咪状态的 Firestore DocumentReference
+         * 获取猫咪状态的 Firestore DocumentReference (共享文档)
          */
         function getCatRef() {
-            // Public collection accessible by all users for this app
-            // 注意：现在我们使用固定的 appId 'travel-meow-app'
             const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
             return doc(db, catPath);
+        }
+
+        /**
+         * 获取用户档案的 Firestore DocumentReference (私有文档)
+         */
+        function getUserProfileRef(uid) {
+             const profilePath = `/artifacts/${appId}/users/${uid}/user_profile/data`;
+             return doc(db, profilePath);
         }
 
         /**
          * 实时监听猫咪状态
          */
         function listenToCatState() {
-            if (!db) return; // Guard against uninitialized db
+            if (!db) return; 
 
             onSnapshot(getCatRef(), (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     let data = docSnapshot.data();
 
-                    // Convert Firestore Timestamp to JS Date/MS for decay calculation
                     const lastVisitMs = data.lastVisitTimestamp ? data.lastVisitTimestamp.toDate().getTime() : Date.now();
                     
-                    // 1. Calculate Decay only if it's not the initial state setting
                     if (data.lastVisitTimestamp) {
                          data.mood = calculateMoodDecay(data.mood, lastVisitMs);
                     }
                     
-                    // 2. Update local state
                     catState = { ...catState, ...data };
                     
-                    // 3. Immediately save the decayed state back to Firestore if decay occurred
                     if (data.mood !== catState.mood && isAuthReady) {
-                        // 使用 runTransaction 确保并发安全
                         saveCatState({ mood: catState.mood, lastVisitTimestamp: serverTimestamp() }, false); 
                     }
 
-                    // 4. Update UI
                     updateUI();
                 } else {
                     // Initialize the document if it doesn't exist (first load)
-                    const now = Date.now();
                     catState = {
                         mood: 100,
                         currency: 100, // Starting currency
                         lastVisitTimestamp: serverTimestamp(),
                         lastInteractionUserId: userId || 'system',
+                        lastInteractionUserName: userName || '系统', // 使用当前用户的名字初始化
                         catName: '小萌喵'
                     };
                     setDoc(getCatRef(), catState);
@@ -343,9 +382,64 @@
         }
         
         /**
+         * 加载或创建用户档案
+         */
+        async function loadOrCreateUserProfile() {
+            if (!userId) return;
+
+            try {
+                const profileRef = getUserProfileRef(userId);
+                const docSnap = await getDoc(profileRef);
+
+                if (docSnap.exists()) {
+                    userName = docSnap.data().name || '未知用户';
+                    showToast(`欢迎回来，${userName}！`, 'info');
+                    // 名字已加载，可以开始监听猫咪状态
+                    listenToCatState(); 
+                } else {
+                    // 第一次登录，提示设置名字
+                    showNameModal(true);
+                }
+            } catch (error) {
+                console.error("Error loading user profile:", error);
+                showToast("加载用户档案失败，请检查安全规则。", 'error');
+                // 即使失败也要尝试继续，使用默认名
+                listenToCatState(); 
+            }
+        }
+
+        /**
+         * 保存用户名字
+         */
+        window.saveUserName = async function() {
+            const newName = nameInput.value.trim();
+            if (newName.length < 2 || newName.length > 10) {
+                showToast("名字长度须在 2 到 10 个字符之间。", 'error');
+                return;
+            }
+
+            try {
+                const profileRef = getUserProfileRef(userId);
+                await setDoc(profileRef, { name: newName });
+                userName = newName;
+                showNameModal(false);
+                showToast(`名字已保存为：${userName}`, 'success');
+                currentUserNameDisplay.textContent = userName; // 立即更新 UI
+                
+                // 名字设置成功后才开始监听猫咪状态（如果是第一次）
+                if (catState.lastInteractionUserId === 'N/A') {
+                    listenToCatState();
+                }
+
+            } catch (error) {
+                console.error("Error saving user name:", error);
+                showToast("保存名字失败，请检查安全规则。", 'error');
+            }
+        }
+
+
+        /**
          * 保存猫咪状态 (用于互动操作)
-         * @param {object} updates - 要更新的字段
-         * @param {boolean} addCurrency - 是否增加互动货币
          */
         async function saveCatState(updates, addCurrency = true) {
             if (!userId) {
@@ -354,7 +448,6 @@
             }
             
             const catRef = getCatRef();
-            // 使用 Firestore 事务 (Transaction) 来确保你和你的女朋友同时操作时数据不会冲突。
             const transactionResult = await runTransaction(db, async (transaction) => {
                 const doc = await transaction.get(catRef);
                 if (!doc.exists()) {
@@ -368,19 +461,17 @@
                 // 1. Apply Mood Boost (capped at 100)
                 if (updates.moodBoost) {
                     newMood = Math.min(100, data.mood + updates.moodBoost);
-                    delete updates.moodBoost; // Remove temporary boost field
+                    delete updates.moodBoost; 
                 }
 
                 // 2. Apply Currency Change (for shop/interaction)
                 if (updates.currencyChange) {
                     newCurrency = data.currency + updates.currencyChange;
                     if (newCurrency < 0) {
-                        // Prevent negative currency for shop
                         throw new Error("Currency insufficient.");
                     }
                     delete updates.currencyChange;
                 } else if (addCurrency) {
-                    // Default interaction currency gain
                     newCurrency += 5;
                 }
                 
@@ -391,6 +482,7 @@
                     currency: newCurrency,
                     lastVisitTimestamp: serverTimestamp(),
                     lastInteractionUserId: userId,
+                    lastInteractionUserName: userName, // 新增：保存当前用户的名字
                 };
                 
                 transaction.update(catRef, finalUpdates);
@@ -407,30 +499,25 @@
             });
 
             if (transactionResult.success) {
-                // Update local currency immediately for responsive UI
                 if (addCurrency) showToast("💖 互动成功！喵喵心情+10，金币+5。", 'success');
                 return true;
             }
             return false;
         }
 
-        // --- Interaction Handlers ---
-
-        /** 抚摸小猫 */
+        // --- Interaction Handlers (保持不变) ---
         window.handlePet = async function() {
             if (!isAuthReady) return;
             showToast("正在抚摸...");
             await saveCatState({ moodBoost: 10 });
         }
 
-        /** 喂食小猫 */
         window.handleFeed = async function() {
             if (!isAuthReady) return;
             showToast("正在喂食...");
-            await saveCatState({ moodBoost: 15 }); // 喂食比抚摸加得多
+            await saveCatState({ moodBoost: 15 });
         }
 
-        /** 购买物品 */
         window.buyItem = async function(itemName, cost) {
             if (!isAuthReady) return;
 
@@ -445,7 +532,6 @@
                 message = `🤩 购买了豪华猫抓板，心情大增 +50！`;
             }
 
-            // 购买物品不增加金币，只扣除
             const success = await saveCatState({ moodBoost: moodBoost, currencyChange: -cost }, false);
 
             if (success) {
@@ -458,58 +544,54 @@
 
         async function initFirebase() {
             try {
-                // 检查用户是否已经替换了占位符配置
                 if (firebaseConfig.apiKey.includes("YOUR_")) {
                     console.error("Firebase config is missing or invalid. Please replace the placeholder values.");
                     document.getElementById('app').innerHTML = '<p class="text-center text-red-500 font-bold p-4">⚠️ 配置错误！请在代码中替换 YOUR_... 占位符为你的 Firebase 配置。</p>';
                     return;
                 }
                 
-                // setLogLevel('debug'); // For debugging Firestore operations
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // 在 GitHub Pages 环境中，我们使用匿名登录 (signInAnonymously)
-                if (initialAuthToken) {
-                    // This branch should not run on GitHub Pages
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
                 
-                // Set up auth state change listener
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
                         isAuthReady = true;
-                        // 显示用户ID的前8位
                         currentUserIdDisplay.textContent = `${userId.substring(0, 8)}...`;
-                        showToast(`欢迎回来！你的ID：${userId.substring(0, 8)}...`, 'info');
-                        listenToCatState();
+                        // 登录成功后，加载或设置用户名
+                        loadOrCreateUserProfile(); 
                     } else {
-                        // 匿名登录失败（不常见）
-                        userId = crypto.randomUUID(); // Fallback ID
+                        // 失败或退出时，使用默认值
+                        userId = 'guest'; 
                         isAuthReady = true;
-                        currentUserIdDisplay.textContent = userId;
-                        listenToCatState();
+                        currentUserIdDisplay.textContent = 'Guest';
+                        listenToCatState(); // 仍然尝试监听公共状态
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase initialization or authentication failed:", error);
                 
-                let displayMessage = `❌ Firebase 连接失败，请检查你的配置和安全规则！错误信息：${error.message}`;
-                
-                // 检查是否是 auth/configuration-not-found 错误
-                const errorMessageString = error.message || (error.code || '').toString();
-
-                if (errorMessageString.includes('auth/configuration-not-found')) {
-                     displayMessage = `❌ 身份验证配置错误！请在 Firebase 控制台（Authentication -> Sign-in method）中，确保 **Anonymous（匿名）** 登录提供商已启用。`;
-                }
+                let displayMessage = `
+                    <div class="p-6 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-lg shadow-md mt-4 text-left">
+                        <p class="font-bold text-lg mb-2">❌ Firebase 连接失败！</p>
+                        <p class="text-sm"><strong>错误信息:</strong> ${error.message}</p>
+                        <p class="text-sm mt-3"><strong>请检查：</strong></p>
+                        <ul class="list-disc list-inside text-sm mt-1 space-y-1">
+                            <li><strong>身份验证 (Auth)：</strong> 请在 Firebase 控制台的 "Authentication" -> "Sign-in method" 页面，确保 **Anonymous（匿名）** 登录提供商已启用。</li>
+                            <li><strong>Firestore 数据库：</strong> 确保已在 Firebase 控制台中点击“创建数据库”按钮。</li>
+                            <li><strong>安全规则：</strong> **请务必更新安全规则** 以允许用户读写其个人档案（见下方提示）。</li>
+                        </ul>
+                    </div>
+                `;
 
                 showToast(`Firebase 初始化失败: ${error.message}`, 'error');
-                document.getElementById('app').innerHTML = `<p class="text-center text-red-500 font-bold p-4">${displayMessage}</p>`;
+                appContainer.innerHTML = displayMessage;
+                appContainer.classList.remove('p-6', 'md:p-8', 'border-4');
+                appContainer.classList.add('p-0', 'border-0', 'shadow-none');
             }
         }
 
