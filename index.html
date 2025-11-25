@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱小胡和小菜的喵喵</title>
+    <title>🐱 小胡和小菜的喵喵喵～</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Inter 字体 -->
@@ -420,13 +420,13 @@
 
             if (nowMs >= returnTimeMs) {
                 // Cat has returned!
-                const destination = TRAVEL_DESTINATIONS.find(d => d.name === data.travelDestination);
+                const destination = TRAVEL_DESTINATIONS.find(d => d.name === data.travelDestination.replace(' (急忙赶回中)', ''));
                 const destinationReward = destination ? destination.reward : 50;
                 
                 const rewardCurrency = destinationReward + Math.floor(Math.random() * 30); // 基础奖励 + 随机
                 const rewardMood = 20;
 
-                showToast(`🎉 喵喵从 ${data.travelDestination} 旅行回来了！`, 'success');
+                showToast(`🎉 喵喵从 ${data.travelDestination.replace(' (急忙赶回中)', '')} 旅行回来了！`, 'success');
                 showToast(`💰 获得了 ${rewardCurrency} 金币，心情值 +${rewardMood}！`, 'success');
 
                 // Update state for next transaction
@@ -470,21 +470,47 @@
             if (catState.isTraveling) {
                 // 旅行状态
                 const returnDate = catState.returnTimestamp ? catState.returnTimestamp.toDate().toLocaleString('zh-CN') : '未知时间';
-                travelStatusP.textContent = `🚀 正在 ${catState.travelDestination} 旅行，预计 ${returnDate} 返回。`;
-                travelStatusP.classList.add('text-indigo-500');
+                const timeRemainingMs = catState.returnTimestamp.toDate().getTime() - Date.now();
+                const timeRemainingMinutes = Math.ceil(timeRemainingMs / (60 * 1000));
                 
+                let travelMessage;
+                // 判断是否处于呼唤后的急促返回状态（剩余时间小于等于5分钟）
+                const isRushingHome = timeRemainingMinutes <= 5 && timeRemainingMinutes > 0;
+
+                if (isRushingHome) {
+                     travelMessage = `🚨 喵喵听到呼唤正在加速返回中！预计还有 ${timeRemainingMinutes} 分钟到家。`;
+                     travelStatusP.classList.remove('text-indigo-500');
+                     travelStatusP.classList.add('text-red-500');
+
+                     travelBtn.disabled = true;
+                     travelBtn.textContent = '加速返程中...';
+                     travelBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-red-500', 'hover:bg-red-600');
+                     travelBtn.classList.add('bg-gray-400');
+                } else {
+                     // 正常旅行状态
+                     travelMessage = `🚀 正在 ${catState.travelDestination} 旅行，预计 ${returnDate} 返回。`;
+                     travelStatusP.classList.remove('text-red-500');
+                     travelStatusP.classList.add('text-indigo-500');
+
+                     // 允许呼唤回家
+                     travelBtn.disabled = false;
+                     travelBtn.textContent = '📞 呼唤回家';
+                     travelBtn.setAttribute('onclick', 'callCatHome()');
+                     travelBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-gray-400');
+                     travelBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                }
+
+                travelStatusP.textContent = travelMessage;
                 catMessage.textContent = `${catState.catName}：我出发啦！要好好照顾自己哦！`;
                 
                 // 禁用互动按钮
-                travelBtn.disabled = true;
-                travelBtn.textContent = '喵喵在路上...';
                 petBtn.disabled = true;
                 feedBtn.disabled = true;
 
             } else {
                 // 在家状态
                 travelStatusP.textContent = `🏠 ${catState.catName} 在家等你。`;
-                travelStatusP.classList.remove('text-indigo-500');
+                travelStatusP.classList.remove('text-indigo-500', 'text-red-500');
 
                 if (moodPercent >= 90) {
                     catMessage.textContent = `${catState.catName}：太开心啦！被爱着的感觉真好！`;
@@ -496,9 +522,13 @@
                     catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
                 }
                 
-                // 启用互动按钮
+                // 启用打包出发按钮
                 travelBtn.disabled = false;
                 travelBtn.textContent = '打包出发';
+                travelBtn.setAttribute('onclick', 'sendCatTraveling()');
+                travelBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'bg-gray-400');
+                travelBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600', 'text-text-dark');
+                
                 petBtn.disabled = false;
                 feedBtn.disabled = false;
             }
@@ -518,7 +548,7 @@
             }
         }
 
-        // --- Firestore Functions ---
+        // --- Firestore Functions (保持不变) ---
 
         function getCatRef() {
             const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
@@ -741,6 +771,27 @@
             
             if (success) {
                 showToast(`🚀 喵喵背起小行囊去 ${destinationData.name} 啦！预计旅行 ${durationHours} 小时。`, 'info');
+                updateUI();
+            }
+        }
+        
+        /** 呼唤喵喵回家 (5 分钟后返回) */
+        window.callCatHome = async function() {
+            if (!isAuthReady || !catState.isTraveling) return;
+
+            const returnTimeMs = Date.now() + 5 * 60 * 1000; // 5 minutes from now
+            
+            // 使用原目的地名称，并加上急促返回标记
+            const originalDestinationName = catState.travelDestination.replace(' (急忙赶回中)', '');
+
+            const success = await saveCatState({
+                // Set new, immediate return time
+                returnTimestamp: Timestamp.fromMillis(returnTimeMs),
+                travelDestination: originalDestinationName + ' (急忙赶回中)'
+            }, false);
+
+            if (success) {
+                showToast(`📞 已经呼唤喵喵回家！它正在 ${originalDestinationName} 匆忙赶回来，请等待 5 分钟！`, 'info');
                 updateUI();
             }
         }
