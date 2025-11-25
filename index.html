@@ -1,584 +1,519 @@
 <!DOCTYPE html>
 <html lang="zh-Hans">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐱 异地恋协作养猫：小萌喵养成记</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Inter 字体 -->
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
-      body {
-        font-family: "Inter", sans-serif;
-        background-color: #f7f3f0; /* 柔和的背景色 */
-      }
-      .cat-visual {
-        font-size: 8rem; /* 小猫图标尺寸 */
-        transition: transform 0.2s ease-in-out;
-        cursor: pointer;
-      }
-      .cat-visual:active {
-        transform: scale(1.1) rotate(5deg);
-      }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f3f0; /* 柔和的背景色 */
+        }
+        .cat-visual {
+            font-size: 8rem; /* 小猫图标尺寸 */
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .cat-visual:active {
+            transform: scale(1.1) rotate(5deg);
+        }
     </style>
     <!-- Tailwind 配置 -->
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              "primary-pink": "#ff7c9c",
-              "secondary-yellow": "#ffeb7c",
-              "bg-light": "#fefefe",
-              "text-dark": "#333333",
-            },
-          },
-        },
-      };
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-pink': '#ff7c9c',
+                        'secondary-yellow': '#ffeb7c',
+                        'bg-light': '#fefefe',
+                        'text-dark': '#333333',
+                    }
+                }
+            }
+        }
     </script>
-  </head>
-  <body class="min-h-screen flex items-center justify-center p-4">
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
     <!-- 主应用容器 -->
-    <div
-      id="app"
-      class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50"
-    >
-      <!-- 顶部状态栏 -->
-      <div class="flex justify-between items-center mb-6 border-b pb-4">
-        <h1 class="text-3xl font-extrabold text-primary-pink">小萌喵养成记</h1>
-        <div
-          id="currency-display"
-          class="flex items-center space-x-2 text-xl font-bold text-text-dark bg-secondary-yellow/70 px-4 py-2 rounded-full shadow-md"
-        >
-          <span class="text-2xl">💰</span>
-          <span id="currency-value">0</span>
-        </div>
-      </div>
+    <div id="app" class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50">
 
-      <!-- 小猫区域 -->
-      <div id="cat-area" class="text-center mb-8">
-        <div
-          id="cat-visual"
-          class="cat-visual inline-block"
-          onclick="handlePet()"
-        >
-          <!-- 默认猫咪图标 -->
-          <span role="img" aria-label="Cat Emoji">🐾</span>
-        </div>
-
-        <p
-          id="cat-message"
-          class="text-lg font-semibold mt-4 text-text-dark min-h-[1.5em]"
-        ></p>
-
-        <!-- 心情值进度条 -->
-        <div class="mt-4">
-          <p class="text-md font-medium text-gray-600">
-            心情值：<span id="mood-value">100</span> / 100
-          </p>
-          <div class="w-full bg-gray-200 rounded-full h-3.5 mt-2">
-            <div
-              id="mood-bar"
-              class="h-3.5 rounded-full transition-all duration-500"
-              style="width: 100%; background-color: #10b981"
-            ></div>
-          </div>
-        </div>
-
-        <!-- 互动记录 -->
-        <p id="last-interaction" class="text-sm mt-4 text-gray-500"></p>
-      </div>
-
-      <!-- 互动按钮 -->
-      <div class="grid grid-cols-2 gap-4 mb-8">
-        <button
-          onclick="handlePet()"
-          class="flex items-center justify-center space-x-2 bg-primary-pink hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]"
-        >
-          <span class="text-xl">❤️</span>
-          <span>抚摸喵喵</span>
-        </button>
-        <button
-          onclick="handleFeed()"
-          class="flex items-center justify-center space-x-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]"
-        >
-          <span class="text-xl">🐟</span>
-          <span>喂小鱼干</span>
-        </button>
-      </div>
-
-      <!-- 商店区域 -->
-      <div class="mt-8 border-t pt-6">
-        <h2 class="text-2xl font-bold text-text-dark mb-4">🛒 喵喵商店</h2>
-        <div id="shop-items" class="space-y-4">
-          <!-- 商品 1: 玩具球 -->
-          <div
-            class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100"
-          >
-            <div class="flex items-center space-x-3">
-              <span class="text-3xl">🧶</span>
-              <div>
-                <p class="font-semibold text-text-dark">玩具毛线球</p>
-                <p class="text-sm text-gray-500">+20 心情值，立即玩耍</p>
-              </div>
+        <!-- 顶部状态栏 -->
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h1 class="text-3xl font-extrabold text-primary-pink">小萌喵养成记</h1>
+            <div id="currency-display" class="flex items-center space-x-2 text-xl font-bold text-text-dark bg-secondary-yellow/70 px-4 py-2 rounded-full shadow-md">
+                <span class="text-2xl">💰</span>
+                <span id="currency-value">0</span>
             </div>
-            <button
-              onclick="buyItem('ball', 50)"
-              class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300"
-            >
-              购买 (💰50)
-            </button>
-          </div>
-
-          <!-- 商品 2: 豪华猫抓板 -->
-          <div
-            class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100"
-          >
-            <div class="flex items-center space-x-3">
-              <span class="text-3xl">🌳</span>
-              <div>
-                <p class="font-semibold text-text-dark">豪华猫抓板</p>
-                <p class="text-sm text-gray-500">+50 心情值，提升心情上限</p>
-              </div>
-            </div>
-            <button
-              onclick="buyItem('scratcher', 120)"
-              class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300"
-            >
-              购买 (💰120)
-            </button>
-          </div>
         </div>
-      </div>
 
-      <!-- 用户信息和提示 -->
-      <div class="mt-8 pt-4 border-t text-center text-sm text-gray-400">
-        <p>
-          共同养育者ID：<span
-            id="current-user-id"
-            class="font-mono text-xs select-all"
-            >Loading...</span
-          >
-        </p>
-        <p class="mt-2 text-xs text-red-500/80">
-          ⚠️ 请将此页面发给你的女朋友。你们将共享这只小猫的状态！
-        </p>
-      </div>
+        <!-- 小猫区域 -->
+        <div id="cat-area" class="text-center mb-8">
+            <div id="cat-visual" class="cat-visual inline-block" onclick="handlePet()">
+                <!-- 默认猫咪图标 -->
+                <span role="img" aria-label="Cat Emoji">🐾</span>
+            </div>
+            
+            <p id="cat-message" class="text-lg font-semibold mt-4 text-text-dark min-h-[1.5em]"></p>
+
+            <!-- 心情值进度条 -->
+            <div class="mt-4">
+                <p class="text-md font-medium text-gray-600">心情值：<span id="mood-value">100</span> / 100</p>
+                <div class="w-full bg-gray-200 rounded-full h-3.5 mt-2">
+                    <div id="mood-bar" class="h-3.5 rounded-full transition-all duration-500" style="width: 100%; background-color: #10b981;"></div>
+                </div>
+            </div>
+
+            <!-- 互动记录 -->
+            <p id="last-interaction" class="text-sm mt-4 text-gray-500"></p>
+        </div>
+
+        <!-- 互动按钮 -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button onclick="handlePet()" class="flex items-center justify-center space-x-2 bg-primary-pink hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
+                <span class="text-xl">❤️</span>
+                <span>抚摸喵喵</span>
+            </button>
+            <button onclick="handleFeed()" class="flex items-center justify-center space-x-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
+                <span class="text-xl">🐟</span>
+                <span>喂小鱼干</span>
+            </button>
+        </div>
+
+        <!-- 商店区域 -->
+        <div class="mt-8 border-t pt-6">
+            <h2 class="text-2xl font-bold text-text-dark mb-4">🛒 喵喵商店</h2>
+            <div id="shop-items" class="space-y-4">
+                <!-- 商品 1: 玩具球 -->
+                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">🧶</span>
+                        <div>
+                            <p class="font-semibold text-text-dark">玩具毛线球</p>
+                            <p class="text-sm text-gray-500">+20 心情值，立即玩耍</p>
+                        </div>
+                    </div>
+                    <button onclick="buyItem('ball', 50)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                        购买 (💰50)
+                    </button>
+                </div>
+                
+                <!-- 商品 2: 豪华猫抓板 -->
+                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">🌳</span>
+                        <div>
+                            <p class="font-semibold text-text-dark">豪华猫抓板</p>
+                            <p class="text-sm text-gray-500">+50 心情值，提升心情上限</p>
+                        </div>
+                    </div>
+                    <button onclick="buyItem('scratcher', 120)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                        购买 (💰120)
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 用户信息和提示 -->
+        <div class="mt-8 pt-4 border-t text-center text-sm text-gray-400">
+            <p>共同养育者ID：<span id="current-user-id" class="font-mono text-xs select-all">Loading...</span></p>
+            <p class="mt-2 text-xs text-red-500/80">⚠️ 请将此页面发给你的女朋友。你们将共享这只小猫的状态！</p>
+        </div>
+
     </div>
 
     <!-- 弹窗/Toast 区域 -->
-    <div
-      id="toast-container"
-      class="fixed bottom-5 right-5 space-y-2 z-50"
-    ></div>
+    <div id="toast-container" class="fixed bottom-5 right-5 space-y-2 z-50"></div>
+
 
     <!-- 引入 Firebase SDKs -->
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import {
-        getAuth,
-        signInAnonymously,
-        signInWithCustomToken,
-        onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-      import {
-        getFirestore,
-        doc,
-        onSnapshot,
-        setDoc,
-        runTransaction,
-        serverTimestamp,
-        setLogLevel,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, runTransaction, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-      // IMPORTANT: Use the global variables provided by the environment
-      const appId =
-        typeof __app_id !== "undefined" ? __app_id : "cat-pet-app-default";
-      const firebaseConfig =
-        typeof __firebase_config !== "undefined"
-          ? JSON.parse(__firebase_config)
-          : {};
-      const initialAuthToken =
-        typeof __initial_auth_token !== "undefined"
-          ? __initial_auth_token
-          : null;
-
-      // --- Firebase Initialization ---
-      let app,
-        db,
-        auth,
-        userId = null;
-      let isAuthReady = false;
-
-      // Global state for the cat
-      let catState = {
-        mood: 100,
-        currency: 0,
-        lastVisitTimestamp: serverTimestamp(),
-        lastInteractionUserId: "N/A",
-        catName: "小萌喵",
-      };
-
-      // UI elements
-      const moodBar = document.getElementById("mood-bar");
-      const moodValueSpan = document.getElementById("mood-value");
-      const currencyValueSpan = document.getElementById("currency-value");
-      const lastInteractionP = document.getElementById("last-interaction");
-      const catVisual = document.getElementById("cat-visual");
-      const catMessage = document.getElementById("cat-message");
-      const currentUserIdDisplay = document.getElementById("current-user-id");
-      const toastContainer = document.getElementById("toast-container");
-
-      // Game Constants
-      const MOOD_DECAY_RATE = 5; // Mood points lost every DECAY_INTERVAL_MS
-      const DECAY_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-
-      // --- Utility Functions ---
-
-      /**
-       * 显示一个临时通知 (Toast)
-       * @param {string} message - 消息内容
-       * @param {string} type - success, error, or info
-       */
-      function showToast(message, type = "info") {
-        const colors = {
-          success: "bg-green-500",
-          error: "bg-red-500",
-          info: "bg-blue-500",
+        // IMPORTANT: Use a fixed ID for external deployment
+        const appId = 'travel-meow-app'; // 固定应用ID
+        
+        // =======================================================================
+        // !!! 你的 Firebase 配置对象已粘贴到这里 !!!
+        // =======================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmdX7WHZ77IQiIy5cL0kFMmfHvw-zmF2o",
+            authDomain: "travelm-a1915.firebaseapp.com",
+            projectId: "travelm-a1915",
+            storageBucket: "travelm-a1915.firebasestorage.app",
+            messagingSenderId: "63304708104",
+            appId: "1:63304708104:web:2ff4df204ccde3afb8a1bd", 
         };
-        const color = colors[type] || colors["info"];
+        // =======================================================================
 
-        const toast = document.createElement("div");
-        toast.className = `${color} text-white px-4 py-3 rounded-xl shadow-lg transition-all duration-500 opacity-0 transform translate-x-10`;
-        toast.textContent = message;
+        // 在 GitHub Pages 上无法使用 Canvas 提供的认证 Token，我们将使用匿名登录。
+        const initialAuthToken = null; 
+        
+        // --- Firebase Initialization ---
+        let app, db, auth, userId = null;
+        let isAuthReady = false;
+        
+        // Global state for the cat
+        let catState = {
+            mood: 100,
+            currency: 0,
+            lastVisitTimestamp: serverTimestamp(),
+            lastInteractionUserId: 'N/A',
+            catName: '小萌喵',
+        };
 
-        toastContainer.appendChild(toast);
+        // UI elements
+        const moodBar = document.getElementById('mood-bar');
+        const moodValueSpan = document.getElementById('mood-value');
+        const currencyValueSpan = document.getElementById('currency-value');
+        const lastInteractionP = document.getElementById('last-interaction');
+        const catVisual = document.getElementById('cat-visual');
+        const catMessage = document.getElementById('cat-message');
+        const currentUserIdDisplay = document.getElementById('current-user-id');
+        const toastContainer = document.getElementById('toast-container');
+        
+        // Game Constants
+        const MOOD_DECAY_RATE = 5; // Mood points lost every DECAY_INTERVAL_MS
+        const DECAY_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
-        // Animate in
-        setTimeout(() => {
-          toast.classList.remove("opacity-0", "translate-x-10");
-          toast.classList.add("opacity-100", "translate-x-0");
-        }, 50);
+        // --- Utility Functions ---
 
-        // Animate out and remove
-        setTimeout(() => {
-          toast.classList.remove("opacity-100", "translate-x-0");
-          toast.classList.add("opacity-0", "translate-x-10");
-          toast.addEventListener("transitionend", () => toast.remove());
-        }, 3000);
-      }
-
-      /**
-       * 计算心清衰减
-       * @param {number} currentMood - 当前心情值
-       * @param {number} lastVisitMs - 上次访问时间戳 (毫秒)
-       * @returns {number} - 衰减后的心情值
-       */
-      function calculateMoodDecay(currentMood, lastVisitMs) {
-        const now = Date.now();
-        const timeElapsed = now - lastVisitMs;
-
-        if (timeElapsed <= 0) return currentMood; // No decay
-
-        const decayPeriods = Math.floor(timeElapsed / DECAY_INTERVAL_MS);
-        const totalDecay = decayPeriods * MOOD_DECAY_RATE;
-
-        let newMood = Math.max(0, currentMood - totalDecay);
-
-        // Only show toast if significant decay happened since last load/interaction
-        if (totalDecay > 0 && timeElapsed > DECAY_INTERVAL_MS / 2) {
-          showToast(
-            `💔 喵喵心情值下降了 ${totalDecay} 点，因为你们太久没来看它了！`,
-            "error"
-          );
-        }
-
-        return newMood;
-      }
-
-      /**
-       * 更新 UI
-       */
-      function updateUI() {
-        // 确保心情值在 0-100 之间
-        const safeMood = Math.max(0, Math.min(100, catState.mood));
-        const moodPercent = safeMood;
-
-        moodBar.style.width = `${moodPercent}%`;
-        moodValueSpan.textContent = safeMood;
-        currencyValueSpan.textContent = catState.currency;
-
-        // Mood Bar color
-        let color;
-        if (moodPercent > 70) color = "#10b981"; // Green (Tailwind: green-500)
-        else if (moodPercent > 40)
-          color = "#f59e0b"; // Yellow (Tailwind: amber-500)
-        else color = "#ef4444"; // Red (Tailwind: red-500)
-        moodBar.style.backgroundColor = color;
-
-        // Cat Visual and Message
-        if (moodPercent >= 90) {
-          catVisual.innerHTML = "😻";
-          catMessage.textContent = `${catState.catName}：太开心啦！被爱着的感觉真好！`;
-        } else if (moodPercent >= 60) {
-          catVisual.innerHTML = "😸";
-          catMessage.textContent = `${catState.catName}：喵~今天过得不错，谢谢你来看我。`;
-        } else if (moodPercent >= 30) {
-          catVisual.innerHTML = "😾";
-          catMessage.textContent = `${catState.catName}：我有点无聊了，谁能陪我玩一会儿？`;
-        } else {
-          catVisual.innerHTML = "😿";
-          catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
-        }
-
-        // Last Interaction Info
-        const lastTime = catState.lastVisitTimestamp
-          ? new Date(catState.lastVisitTimestamp).toLocaleString("zh-CN")
-          : "从未";
-        const interactionUser =
-          catState.lastInteractionUserId === userId ? "你" : "TA";
-        lastInteractionP.innerHTML = `上次互动：${interactionUser} 在 ${lastTime}`;
-      }
-
-      // --- Firestore Functions ---
-
-      /**
-       * 获取猫咪状态的 Firestore DocumentReference
-       */
-      function getCatRef() {
-        // Public collection accessible by all users for this app
-        const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
-        return doc(db, catPath);
-      }
-
-      /**
-       * 实时监听猫咪状态
-       */
-      function listenToCatState() {
-        if (!db) return; // Guard against uninitialized db
-
-        onSnapshot(
-          getCatRef(),
-          (docSnapshot) => {
-            if (docSnapshot.exists()) {
-              let data = docSnapshot.data();
-
-              // Convert Firestore Timestamp to JS Date/MS for decay calculation
-              const lastVisitMs = data.lastVisitTimestamp
-                ? data.lastVisitTimestamp.toDate().getTime()
-                : Date.now();
-
-              // 1. Calculate Decay only if it's not the initial state setting
-              if (data.lastVisitTimestamp) {
-                data.mood = calculateMoodDecay(data.mood, lastVisitMs);
-              }
-
-              // 2. Update local state
-              catState = { ...catState, ...data };
-
-              // 3. Immediately save the decayed state back to Firestore if decay occurred
-              if (data.mood !== catState.mood && isAuthReady) {
-                saveCatState(
-                  {
-                    mood: catState.mood,
-                    lastVisitTimestamp: serverTimestamp(),
-                  },
-                  false
-                ); // Update mood and last visit time
-              }
-
-              // 4. Update UI
-              updateUI();
-            } else {
-              // Initialize the document if it doesn't exist (first load)
-              const now = Date.now();
-              catState = {
-                mood: 100,
-                currency: 100, // Starting currency
-                lastVisitTimestamp: serverTimestamp(),
-                lastInteractionUserId: userId || "system",
-                catName: "小萌喵",
-              };
-              setDoc(getCatRef(), catState);
-            }
-          },
-          (error) => {
-            console.error("Error listening to cat state: ", error);
-            showToast(`实时数据同步失败：${error.message}`, "error");
-          }
-        );
-      }
-
-      /**
-       * 保存猫咪状态 (用于互动操作)
-       * @param {object} updates - 要更新的字段
-       * @param {boolean} addCurrency - 是否增加互动货币
-       */
-      async function saveCatState(updates, addCurrency = true) {
-        if (!userId) {
-          showToast("用户认证未完成，请稍候再试。", "error");
-          return;
-        }
-
-        const catRef = getCatRef();
-        const transactionResult = await runTransaction(
-          db,
-          async (transaction) => {
-            const doc = await transaction.get(catRef);
-            if (!doc.exists()) {
-              throw "Document does not exist!";
-            }
-
-            let data = doc.data();
-            let newMood = data.mood;
-            let newCurrency = data.currency;
-
-            // 1. Apply Mood Boost (capped at 100)
-            if (updates.moodBoost) {
-              newMood = Math.min(100, data.mood + updates.moodBoost);
-              delete updates.moodBoost; // Remove temporary boost field
-            }
-
-            // 2. Apply Currency Change (for shop/interaction)
-            if (updates.currencyChange) {
-              newCurrency = data.currency + updates.currencyChange;
-              if (newCurrency < 0) {
-                // Prevent negative currency for shop
-                throw new Error("Currency insufficient.");
-              }
-              delete updates.currencyChange;
-            } else if (addCurrency) {
-              // Default interaction currency gain
-              newCurrency += 5;
-            }
-
-            // 3. Prepare final update object
-            const finalUpdates = {
-              ...updates,
-              mood: newMood,
-              currency: newCurrency,
-              lastVisitTimestamp: serverTimestamp(),
-              lastInteractionUserId: userId,
+        /**
+         * 显示一个临时通知 (Toast)
+         * @param {string} message - 消息内容
+         * @param {string} type - success, error, or info
+         */
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
             };
+            const color = colors[type] || colors['info'];
 
-            transaction.update(catRef, finalUpdates);
-            return { success: true, newCurrency };
-          }
-        ).catch((error) => {
-          if (error.message === "Currency insufficient.") {
-            showToast("💰 金币不足，请赚取更多金币！", "error");
-          } else {
-            console.error("Transaction failed: ", error);
-            showToast(`互动失败: ${error.message}`, "error");
-          }
-          return { success: false };
-        });
+            const toast = document.createElement('div');
+            toast.className = `${color} text-white px-4 py-3 rounded-xl shadow-lg transition-all duration-500 opacity-0 transform translate-x-10`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
 
-        if (transactionResult.success) {
-          // Update local currency immediately for responsive UI
-          if (addCurrency)
-            showToast("💖 互动成功！喵喵心情+10，金币+5。", "success");
-          return true;
-        }
-        return false;
-      }
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-x-10');
+                toast.classList.add('opacity-100', 'translate-x-0');
+            }, 50);
 
-      // --- Interaction Handlers ---
-
-      /** 抚摸小猫 */
-      window.handlePet = async function () {
-        if (!isAuthReady) return;
-        showToast("正在抚摸...");
-        await saveCatState({ moodBoost: 10 });
-      };
-
-      /** 喂食小猫 */
-      window.handleFeed = async function () {
-        if (!isAuthReady) return;
-        showToast("正在喂食...");
-        await saveCatState({ moodBoost: 15 }); // 喂食比抚摸加得多
-      };
-
-      /** 购买物品 */
-      window.buyItem = async function (itemName, cost) {
-        if (!isAuthReady) return;
-
-        let moodBoost = 0;
-        let message = "";
-
-        if (itemName === "ball") {
-          moodBoost = 20;
-          message = `🥳 购买了玩具毛线球，喵喵开心玩耍，心情+20！`;
-        } else if (itemName === "scratcher") {
-          moodBoost = 50;
-          message = `🤩 购买了豪华猫抓板，心情大增 +50！`;
+            // Animate out and remove
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-x-0');
+                toast.classList.add('opacity-0', 'translate-x-10');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 3000);
         }
 
-        const success = await saveCatState(
-          { moodBoost: moodBoost, currencyChange: -cost },
-          false
-        );
+        /**
+         * 计算心清衰减
+         * @param {number} currentMood - 当前心情值
+         * @param {number} lastVisitMs - 上次访问时间戳 (毫秒)
+         * @returns {number} - 衰减后的心情值
+         */
+        function calculateMoodDecay(currentMood, lastVisitMs) {
+            const now = Date.now();
+            const timeElapsed = now - lastVisitMs;
 
-        if (success) {
-          showToast(message, "success");
-        }
-      };
+            if (timeElapsed <= 0) return currentMood; // No decay
 
-      // --- Auth Setup ---
-
-      async function initFirebase() {
-        try {
-          if (Object.keys(firebaseConfig).length === 0) {
-            console.error(
-              "Firebase config is missing. App will run without persistence."
-            );
-            document.getElementById("app").innerHTML =
-              '<p class="text-center text-red-500">Firebase 配置缺失。此应用需要 Firestore 才能实现协作功能。</p>';
-            return;
-          }
-
-          // setLogLevel('debug'); // For debugging Firestore operations
-          app = initializeApp(firebaseConfig);
-          db = getFirestore(app);
-          auth = getAuth(app);
-
-          // Sign in using the provided token or anonymously
-          if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-          } else {
-            await signInAnonymously(auth);
-          }
-
-          // Set up auth state change listener
-          onAuthStateChanged(auth, (user) => {
-            if (user) {
-              userId = user.uid;
-              isAuthReady = true;
-              currentUserIdDisplay.textContent = userId;
-              showToast(
-                `欢迎回来！你的ID：${userId.substring(0, 8)}...`,
-                "info"
-              );
-              listenToCatState();
-            } else {
-              // This should not happen if signInAnonymously is successful
-              userId = crypto.randomUUID(); // Fallback ID
-              isAuthReady = true;
-              currentUserIdDisplay.textContent = userId;
-              listenToCatState();
+            const decayPeriods = Math.floor(timeElapsed / DECAY_INTERVAL_MS);
+            const totalDecay = decayPeriods * MOOD_DECAY_RATE;
+            
+            let newMood = Math.max(0, currentMood - totalDecay);
+            
+            // Only show toast if significant decay happened since last load/interaction
+            if (totalDecay > 0 && timeElapsed > (DECAY_INTERVAL_MS / 2)) {
+                showToast(`💔 喵喵心情值下降了 ${totalDecay} 点，因为你们太久没来看它了！`, 'error');
             }
-          });
-        } catch (error) {
-          console.error(
-            "Firebase initialization or authentication failed:",
-            error
-          );
-          showToast(`Firebase 初始化失败: ${error.message}`, "error");
-        }
-      }
 
-      initFirebase();
+            return newMood;
+        }
+
+        /**
+         * 更新 UI
+         */
+        function updateUI() {
+            // 确保心情值在 0-100 之间
+            const safeMood = Math.max(0, Math.min(100, catState.mood));
+            const moodPercent = safeMood;
+            
+            moodBar.style.width = `${moodPercent}%`;
+            moodValueSpan.textContent = safeMood;
+            currencyValueSpan.textContent = catState.currency;
+
+            // Mood Bar color
+            let color;
+            if (moodPercent > 70) color = '#10b981'; // Green (Tailwind: green-500)
+            else if (moodPercent > 40) color = '#f59e0b'; // Yellow (Tailwind: amber-500)
+            else color = '#ef4444'; // Red (Tailwind: red-500)
+            moodBar.style.backgroundColor = color;
+
+            // Cat Visual and Message
+            if (moodPercent >= 90) {
+                catVisual.innerHTML = '😻';
+                catMessage.textContent = `${catState.catName}：太开心啦！被爱着的感觉真好！`;
+            } else if (moodPercent >= 60) {
+                catVisual.innerHTML = '😸';
+                catMessage.textContent = `${catState.catName}：喵~今天过得不错，谢谢你来看我。`;
+            } else if (moodPercent >= 30) {
+                catVisual.innerHTML = '😾';
+                catMessage.textContent = `${catState.catName}：我有点无聊了，谁能陪我玩一会儿？`;
+            } else {
+                catVisual.innerHTML = '😿';
+                catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
+            }
+            
+            // Last Interaction Info
+            const lastTime = catState.lastVisitTimestamp ? new Date(catState.lastVisitTimestamp).toLocaleString('zh-CN') : '从未';
+            const interactionUser = catState.lastInteractionUserId === userId ? '你' : 'TA';
+            lastInteractionP.innerHTML = `上次互动：${interactionUser} 在 ${lastTime}`;
+        }
+
+        // --- Firestore Functions ---
+
+        /**
+         * 获取猫咪状态的 Firestore DocumentReference
+         */
+        function getCatRef() {
+            // Public collection accessible by all users for this app
+            // 注意：现在我们使用固定的 appId 'travel-meow-app'
+            const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
+            return doc(db, catPath);
+        }
+
+        /**
+         * 实时监听猫咪状态
+         */
+        function listenToCatState() {
+            if (!db) return; // Guard against uninitialized db
+
+            onSnapshot(getCatRef(), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    let data = docSnapshot.data();
+
+                    // Convert Firestore Timestamp to JS Date/MS for decay calculation
+                    const lastVisitMs = data.lastVisitTimestamp ? data.lastVisitTimestamp.toDate().getTime() : Date.now();
+                    
+                    // 1. Calculate Decay only if it's not the initial state setting
+                    if (data.lastVisitTimestamp) {
+                         data.mood = calculateMoodDecay(data.mood, lastVisitMs);
+                    }
+                    
+                    // 2. Update local state
+                    catState = { ...catState, ...data };
+                    
+                    // 3. Immediately save the decayed state back to Firestore if decay occurred
+                    if (data.mood !== catState.mood && isAuthReady) {
+                        // 使用 runTransaction 确保并发安全
+                        saveCatState({ mood: catState.mood, lastVisitTimestamp: serverTimestamp() }, false); 
+                    }
+
+                    // 4. Update UI
+                    updateUI();
+                } else {
+                    // Initialize the document if it doesn't exist (first load)
+                    const now = Date.now();
+                    catState = {
+                        mood: 100,
+                        currency: 100, // Starting currency
+                        lastVisitTimestamp: serverTimestamp(),
+                        lastInteractionUserId: userId || 'system',
+                        catName: '小萌喵'
+                    };
+                    setDoc(getCatRef(), catState);
+                }
+            }, (error) => {
+                console.error("Error listening to cat state: ", error);
+                showToast(`实时数据同步失败：${error.message}`, 'error');
+            });
+        }
+        
+        /**
+         * 保存猫咪状态 (用于互动操作)
+         * @param {object} updates - 要更新的字段
+         * @param {boolean} addCurrency - 是否增加互动货币
+         */
+        async function saveCatState(updates, addCurrency = true) {
+            if (!userId) {
+                showToast("用户认证未完成，请稍候再试。", 'error');
+                return;
+            }
+            
+            const catRef = getCatRef();
+            // 使用 Firestore 事务 (Transaction) 来确保你和你的女朋友同时操作时数据不会冲突。
+            const transactionResult = await runTransaction(db, async (transaction) => {
+                const doc = await transaction.get(catRef);
+                if (!doc.exists()) {
+                    throw new Error("Document does not exist!");
+                }
+                
+                let data = doc.data();
+                let newMood = data.mood;
+                let newCurrency = data.currency;
+                
+                // 1. Apply Mood Boost (capped at 100)
+                if (updates.moodBoost) {
+                    newMood = Math.min(100, data.mood + updates.moodBoost);
+                    delete updates.moodBoost; // Remove temporary boost field
+                }
+
+                // 2. Apply Currency Change (for shop/interaction)
+                if (updates.currencyChange) {
+                    newCurrency = data.currency + updates.currencyChange;
+                    if (newCurrency < 0) {
+                        // Prevent negative currency for shop
+                        throw new Error("Currency insufficient.");
+                    }
+                    delete updates.currencyChange;
+                } else if (addCurrency) {
+                    // Default interaction currency gain
+                    newCurrency += 5;
+                }
+                
+                // 3. Prepare final update object
+                const finalUpdates = {
+                    ...updates,
+                    mood: newMood,
+                    currency: newCurrency,
+                    lastVisitTimestamp: serverTimestamp(),
+                    lastInteractionUserId: userId,
+                };
+                
+                transaction.update(catRef, finalUpdates);
+                return { success: true, newCurrency };
+
+            }).catch(error => {
+                if (error.message === "Currency insufficient.") {
+                    showToast("💰 金币不足，请赚取更多金币！", 'error');
+                } else {
+                    console.error("Transaction failed: ", error);
+                    showToast(`互动失败: ${error.message}`, 'error');
+                }
+                return { success: false };
+            });
+
+            if (transactionResult.success) {
+                // Update local currency immediately for responsive UI
+                if (addCurrency) showToast("💖 互动成功！喵喵心情+10，金币+5。", 'success');
+                return true;
+            }
+            return false;
+        }
+
+        // --- Interaction Handlers ---
+
+        /** 抚摸小猫 */
+        window.handlePet = async function() {
+            if (!isAuthReady) return;
+            showToast("正在抚摸...");
+            await saveCatState({ moodBoost: 10 });
+        }
+
+        /** 喂食小猫 */
+        window.handleFeed = async function() {
+            if (!isAuthReady) return;
+            showToast("正在喂食...");
+            await saveCatState({ moodBoost: 15 }); // 喂食比抚摸加得多
+        }
+
+        /** 购买物品 */
+        window.buyItem = async function(itemName, cost) {
+            if (!isAuthReady) return;
+
+            let moodBoost = 0;
+            let message = '';
+
+            if (itemName === 'ball') {
+                moodBoost = 20;
+                message = `🥳 购买了玩具毛线球，喵喵开心玩耍，心情+20！`;
+            } else if (itemName === 'scratcher') {
+                moodBoost = 50;
+                message = `🤩 购买了豪华猫抓板，心情大增 +50！`;
+            }
+
+            // 购买物品不增加金币，只扣除
+            const success = await saveCatState({ moodBoost: moodBoost, currencyChange: -cost }, false);
+
+            if (success) {
+                showToast(message, 'success');
+            }
+        }
+
+
+        // --- Auth Setup ---
+
+        async function initFirebase() {
+            try {
+                // 检查用户是否已经替换了占位符配置
+                if (firebaseConfig.apiKey.includes("YOUR_")) {
+                    console.error("Firebase config is missing or invalid. Please replace the placeholder values.");
+                    document.getElementById('app').innerHTML = '<p class="text-center text-red-500 font-bold p-4">⚠️ 配置错误！请在代码中替换 YOUR_... 占位符为你的 Firebase 配置。</p>';
+                    return;
+                }
+                
+                // setLogLevel('debug'); // For debugging Firestore operations
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // 在 GitHub Pages 环境中，我们使用匿名登录 (signInAnonymously)
+                if (initialAuthToken) {
+                    // This branch should not run on GitHub Pages
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // Set up auth state change listener
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        // 显示用户ID的前8位
+                        currentUserIdDisplay.textContent = `${userId.substring(0, 8)}...`;
+                        showToast(`欢迎回来！你的ID：${userId.substring(0, 8)}...`, 'info');
+                        listenToCatState();
+                    } else {
+                        // 匿名登录失败（不常见）
+                        userId = crypto.randomUUID(); // Fallback ID
+                        isAuthReady = true;
+                        currentUserIdDisplay.textContent = userId;
+                        listenToCatState();
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+                
+                let displayMessage = `❌ Firebase 连接失败，请检查你的配置和安全规则！错误信息：${error.message}`;
+                
+                // 检查是否是 auth/configuration-not-found 错误
+                const errorMessageString = error.message || (error.code || '').toString();
+
+                if (errorMessageString.includes('auth/configuration-not-found')) {
+                     displayMessage = `❌ 身份验证配置错误！请在 Firebase 控制台（Authentication -> Sign-in method）中，确保 **Anonymous（匿名）** 登录提供商已启用。`;
+                }
+
+                showToast(`Firebase 初始化失败: ${error.message}`, 'error');
+                document.getElementById('app').innerHTML = `<p class="text-center text-red-500 font-bold p-4">${displayMessage}</p>`;
+            }
+        }
+
+        initFirebase();
     </script>
-  </body>
+</body>
 </html>
