@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 小胡和小菜的小喵喵</title>
+    <title>🐱小胡和小菜的喵喵</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Inter 字体 -->
@@ -45,8 +45,7 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
     <!-- 主应用容器 -->
-    <!-- 初始设置为隐藏，直到用户信息加载完毕 -->
-    <div id="app-content" class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50 opacity-0 transition duration-500">
+    <div id="app" class="w-full max-w-lg bg-bg-light rounded-3xl shadow-2xl p-6 md:p-8 border-4 border-primary-pink/50 opacity-0 transition duration-500">
 
         <!-- 顶部状态栏 -->
         <div class="flex justify-between items-center mb-6 border-b pb-4">
@@ -64,7 +63,9 @@
                 <span role="img" aria-label="Cat Emoji">🐾</span>
             </div>
             
+            <!-- 小猫状态和消息 -->
             <p id="cat-message" class="text-lg font-semibold mt-4 text-text-dark min-h-[1.5em]"></p>
+            <p id="travel-status" class="text-base text-indigo-500 font-medium mt-1 min-h-[1.5em]"></p>
 
             <!-- 心情值进度条 -->
             <div class="mt-4">
@@ -78,48 +79,72 @@
             <p id="last-interaction" class="text-sm mt-4 text-gray-500"></p>
         </div>
 
-        <!-- 互动按钮 -->
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <button onclick="handlePet()" class="flex items-center justify-center space-x-2 bg-primary-pink hover:bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
+        <!-- 互动/旅行按钮 -->
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <button onclick="handlePet()" id="pet-btn" class="flex items-center justify-center space-x-1 bg-primary-pink hover:bg-pink-600 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
                 <span class="text-xl">❤️</span>
-                <span>抚摸喵喵</span>
+                <span>抚摸</span>
             </button>
-            <button onclick="handleFeed()" class="flex items-center justify-center space-x-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
+            <button onclick="handleFeed()" id="feed-btn" class="flex items-center justify-center space-x-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
                 <span class="text-xl">🐟</span>
-                <span>喂小鱼干</span>
+                <span>喂食</span>
+            </button>
+            <button onclick="sendCatTraveling()" id="travel-btn" class="flex items-center justify-center space-x-1 bg-yellow-500 hover:bg-yellow-600 text-text-dark font-bold py-3 px-2 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02]">
+                <span class="text-xl">🎒</span>
+                <span>打包出发</span>
             </button>
         </div>
 
-        <!-- 商店区域 -->
-        <div class="mt-8 border-t pt-6">
-            <h2 class="text-2xl font-bold text-text-dark mb-4">🛒 喵喵商店</h2>
-            <div id="shop-items" class="space-y-4">
-                <!-- 商品 1: 玩具球 -->
-                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <span class="text-3xl">🧶</span>
-                        <div>
-                            <p class="font-semibold text-text-dark">玩具毛线球</p>
-                            <p class="text-sm text-gray-500">+20 心情值，立即玩耍</p>
+        <!-- 商店/装扮区域 Tabs -->
+        <div class="border-t pt-6">
+            <div class="flex space-x-4 mb-4 border-b">
+                <button onclick="switchShopTab('consumable')" id="tab-consumable" class="pb-2 text-lg font-semibold border-b-2 border-primary-pink text-primary-pink transition duration-300">
+                    消耗品
+                </button>
+                <button onclick="switchShopTab('costume')" id="tab-costume" class="pb-2 text-lg font-semibold text-gray-500 hover:text-primary-pink transition duration-300">
+                    装扮屋
+                </button>
+            </div>
+            
+            <div id="shop-content">
+                <!-- 消耗品 Tab (默认显示) -->
+                <div id="consumable-shop">
+                    <div id="consumable-items" class="space-y-4">
+                        <!-- 商品 1: 玩具球 -->
+                        <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🧶</span>
+                                <div>
+                                    <p class="font-semibold text-text-dark">玩具毛线球</p>
+                                    <p class="text-sm text-gray-500">+20 心情值，立即玩耍</p>
+                                </div>
+                            </div>
+                            <button onclick="buyItem('ball', 50)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                                购买 (💰50)
+                            </button>
+                        </div>
+                        
+                        <!-- 商品 2: 豪华猫抓板 -->
+                        <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🌳</span>
+                                <div>
+                                    <p class="font-semibold text-text-dark">豪华猫抓板</p>
+                                    <p class="text-sm text-gray-500">+50 心情值</p>
+                                </div>
+                            </div>
+                            <button onclick="buyItem('scratcher', 120)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                                购买 (💰120)
+                            </button>
                         </div>
                     </div>
-                    <button onclick="buyItem('ball', 50)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
-                        购买 (💰50)
-                    </button>
                 </div>
-                
-                <!-- 商品 2: 豪华猫抓板 -->
-                <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <span class="text-3xl">🌳</span>
-                        <div>
-                            <p class="font-semibold text-text-dark">豪华猫抓板</p>
-                            <p class="text-sm text-gray-500">+50 心情值，提升心情上限</p>
-                        </div>
+
+                <!-- 装扮屋 Tab (初始隐藏) -->
+                <div id="costume-shop" class="hidden">
+                    <div id="costume-items" class="space-y-4">
+                        <!-- 装扮物品将由 JS 动态生成 -->
                     </div>
-                    <button onclick="buyItem('scratcher', 120)" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
-                        购买 (💰120)
-                    </button>
                 </div>
             </div>
         </div>
@@ -156,7 +181,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc, runTransaction, serverTimestamp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, runTransaction, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // IMPORTANT: Use a fixed ID for external deployment
         const appId = 'travel-meow-app'; // 固定应用ID
@@ -179,7 +204,7 @@
         // --- Firebase Initialization ---
         let app, db, auth, userId = null;
         let isAuthReady = false;
-        let userName = '未知用户'; // 新增：用户名字状态
+        let userName = '未知用户'; 
         
         // Global state for the cat
         let catState = {
@@ -187,12 +212,20 @@
             currency: 0,
             lastVisitTimestamp: serverTimestamp(),
             lastInteractionUserId: 'N/A',
-            lastInteractionUserName: '系统', // 新增：保存上次互动用户名
+            lastInteractionUserName: '系统',
             catName: '小萌喵',
+            // --- 新增旅行状态 ---
+            isTraveling: false,
+            outboundTimestamp: null,
+            returnTimestamp: null,
+            travelDestination: '家',
+            // --- 新增装扮状态 ---
+            inventory: { 'default': true }, // 默认装扮是拥有的
+            equippedCostume: 'default',
         };
 
         // UI elements
-        const appContent = document.getElementById('app-content');
+        const mainAppDiv = document.getElementById('app');
         const moodBar = document.getElementById('mood-bar');
         const moodValueSpan = document.getElementById('mood-value');
         const currencyValueSpan = document.getElementById('currency-value');
@@ -202,24 +235,40 @@
         const currentUserIdDisplay = document.getElementById('current-user-id');
         const currentUserNameDisplay = document.getElementById('current-user-name');
         const toastContainer = document.getElementById('toast-container');
-        const appContainer = document.getElementById('app');
         const nameModal = document.getElementById('name-modal');
         const nameInput = document.getElementById('name-input');
+        const travelStatusP = document.getElementById('travel-status');
+        const travelBtn = document.getElementById('travel-btn');
+        const petBtn = document.getElementById('pet-btn');
+        const feedBtn = document.getElementById('feed-btn');
+        const costumeItemsDiv = document.getElementById('costume-items');
         
         // Game Constants
-        const MOOD_DECAY_RATE = 5; // Mood points lost every DECAY_INTERVAL_MS
-        const DECAY_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        const MOOD_DECAY_RATE = 5; 
+        const DECAY_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 hours
+        const TRAVEL_DESTINATIONS = [
+            { name: '公园草地', emoji: '🏞️', min: 4, max: 8, reward: 20 },
+            { name: '城市咖啡馆', emoji: '☕', min: 8, max: 16, reward: 50 },
+            { name: '遥远的雪山', emoji: '🏔️', min: 16, max: 36, reward: 150 },
+            { name: '海底世界', emoji: '🐠', min: 36, max: 72, reward: 300 }
+        ];
+
+        const COSTUMES = {
+            'default': { name: '默认毛发', emoji: '🐾', cost: 0, description: '最自然的样子' },
+            'bow-tie': { name: '红色小领结', emoji: '🐱‍👓', cost: 150, description: '增添绅士气质' },
+            'astronaut': { name: '宇航员头盔', emoji: '🧑‍🚀', cost: 500, description: '探索星辰大海' },
+            'king': { name: '小王冠', emoji: '👑', cost: 300, description: '喵星人的统治者' },
+        };
 
         // --- Utility Functions ---
 
         /**
          * 显示/隐藏名字设置模态框
-         * @param {boolean} show - true 显示, false 隐藏
          */
         window.showNameModal = function(show) {
             if (show) {
                 nameModal.classList.remove('hidden');
-                nameInput.value = userName === '未知用户' ? '' : userName; // 预填充当前名字
+                nameInput.value = userName === '未知用户' ? '' : userName; 
             } else {
                 nameModal.classList.add('hidden');
             }
@@ -263,14 +312,13 @@
             const now = Date.now();
             const timeElapsed = now - lastVisitMs;
 
-            if (timeElapsed <= 0) return currentMood; // No decay
+            if (timeElapsed <= 0) return currentMood; 
 
             const decayPeriods = Math.floor(timeElapsed / DECAY_INTERVAL_MS);
             const totalDecay = decayPeriods * MOOD_DECAY_RATE;
             
             let newMood = Math.max(0, currentMood - totalDecay);
             
-            // Only show toast if significant decay happened since last load/interaction
             if (totalDecay > 0 && timeElapsed > (DECAY_INTERVAL_MS / 2)) {
                 showToast(`💔 喵喵心情值下降了 ${totalDecay} 点，因为你们太久没来看它了！`, 'error');
             }
@@ -279,10 +327,129 @@
         }
 
         /**
+         * 渲染装扮商店
+         */
+        function renderCostumeShop() {
+            costumeItemsDiv.innerHTML = '';
+            
+            Object.entries(COSTUMES).forEach(([id, item]) => {
+                if (id === 'default') return; // 跳过默认
+                
+                const isOwned = catState.inventory[id];
+                const isEquipped = catState.equippedCostume === id;
+
+                let buttonHtml = '';
+                if (isOwned) {
+                    buttonHtml = `<button onclick="equipCostume('${id}')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300 ${isEquipped ? 'opacity-50 cursor-not-allowed' : ''}" ${isEquipped ? 'disabled' : ''}>
+                        ${isEquipped ? '已装备' : '装备'}
+                    </button>`;
+                } else {
+                    buttonHtml = `<button onclick="buyItem('${id}', ${item.cost})" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                        购买 (💰${item.cost})
+                    </button>`;
+                }
+
+                const itemHtml = `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-3xl">${item.emoji}</span>
+                            <div>
+                                <p class="font-semibold text-text-dark">${item.name}</p>
+                                <p class="text-sm text-gray-500">${item.description}</p>
+                            </div>
+                        </div>
+                        ${buttonHtml}
+                    </div>
+                `;
+                costumeItemsDiv.insertAdjacentHTML('beforeend', itemHtml);
+            });
+            
+            // 卸下装扮按钮
+            if (catState.equippedCostume !== 'default') {
+                 const unequipHtml = `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-md border border-gray-100 mt-4">
+                        <p class="font-semibold text-text-dark">当前装扮：${COSTUMES[catState.equippedCostume].name}</p>
+                        <button onclick="equipCostume('default')" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-full text-sm transition duration-300">
+                            卸下装扮
+                        </button>
+                    </div>
+                `;
+                costumeItemsDiv.insertAdjacentHTML('beforeend', unequipHtml);
+            }
+        }
+        
+        /**
+         * 切换商店 Tab
+         */
+        window.switchShopTab = function(tabName) {
+            const consumableTab = document.getElementById('tab-consumable');
+            const costumeTab = document.getElementById('tab-costume');
+            const consumableShop = document.getElementById('consumable-shop');
+            const costumeShop = document.getElementById('costume-shop');
+
+            if (tabName === 'costume') {
+                costumeTab.classList.add('border-primary-pink', 'text-primary-pink');
+                costumeTab.classList.remove('text-gray-500');
+                consumableTab.classList.remove('border-primary-pink', 'text-primary-pink');
+                consumableTab.classList.add('text-gray-500');
+
+                costumeShop.classList.remove('hidden');
+                consumableShop.classList.add('hidden');
+                renderCostumeShop(); // 渲染装扮
+            } else {
+                consumableTab.classList.add('border-primary-pink', 'text-primary-pink');
+                consumableTab.classList.remove('text-gray-500');
+                costumeTab.classList.remove('border-primary-pink', 'text-primary-pink');
+                costumeTab.classList.add('text-gray-500');
+
+                consumableShop.classList.remove('hidden');
+                costumeShop.classList.add('hidden');
+            }
+        }
+
+        /**
+         * 处理旅行返回，计算奖励
+         * @param {object} data - 当前 Firestore 数据
+         * @returns {object} - 更新后的数据
+         */
+        function processCatReturn(data) {
+            if (!data.isTraveling || !data.returnTimestamp) return data;
+
+            const returnTimeMs = data.returnTimestamp.toDate().getTime();
+            const nowMs = Date.now();
+
+            if (nowMs >= returnTimeMs) {
+                // Cat has returned!
+                const destination = TRAVEL_DESTINATIONS.find(d => d.name === data.travelDestination);
+                const destinationReward = destination ? destination.reward : 50;
+                
+                const rewardCurrency = destinationReward + Math.floor(Math.random() * 30); // 基础奖励 + 随机
+                const rewardMood = 20;
+
+                showToast(`🎉 喵喵从 ${data.travelDestination} 旅行回来了！`, 'success');
+                showToast(`💰 获得了 ${rewardCurrency} 金币，心情值 +${rewardMood}！`, 'success');
+
+                // Update state for next transaction
+                data.isTraveling = false;
+                data.travelDestination = '家';
+                data.outboundTimestamp = null;
+                data.returnTimestamp = null;
+                data.currency += rewardCurrency;
+                data.mood = Math.min(100, data.mood + rewardMood);
+                
+                data.lastInteractionUserId = userId;
+                data.lastInteractionUserName = userName;
+
+                return data;
+            }
+            return data;
+        }
+
+        /**
          * 更新 UI
          */
         function updateUI() {
-            // 确保心情值在 0-100 之间
+            // 1. 基础状态
             const safeMood = Math.max(0, Math.min(100, catState.mood));
             const moodPercent = safeMood;
             
@@ -290,51 +457,74 @@
             moodValueSpan.textContent = safeMood;
             currencyValueSpan.textContent = catState.currency;
 
-            // Mood Bar color
             let color;
-            if (moodPercent > 70) color = '#10b981'; // Green (Tailwind: green-500)
-            else if (moodPercent > 40) color = '#f59e0b'; // Yellow (Tailwind: amber-500)
-            else color = '#ef4444'; // Red (Tailwind: red-500)
+            if (moodPercent > 70) color = '#10b981'; 
+            else if (moodPercent > 40) color = '#f59e0b'; 
+            else color = '#ef4444'; 
             moodBar.style.backgroundColor = color;
+            
+            // 2. 猫咪视觉和信息
+            const currentEmoji = COSTUMES[catState.equippedCostume] ? COSTUMES[catState.equippedCostume].emoji : COSTUMES['default'].emoji;
+            catVisual.innerHTML = currentEmoji;
 
-            // Cat Visual and Message
-            if (moodPercent >= 90) {
-                catVisual.innerHTML = '😻';
-                catMessage.textContent = `${catState.catName}：太开心啦！被爱着的感觉真好！`;
-            } else if (moodPercent >= 60) {
-                catVisual.innerHTML = '😸';
-                catMessage.textContent = `${catState.catName}：喵~今天过得不错，谢谢你来看我。`;
-            } else if (moodPercent >= 30) {
-                catVisual.innerHTML = '😾';
-                catMessage.textContent = `${catState.catName}：我有点无聊了，谁能陪我玩一会儿？`;
+            if (catState.isTraveling) {
+                // 旅行状态
+                const returnDate = catState.returnTimestamp ? catState.returnTimestamp.toDate().toLocaleString('zh-CN') : '未知时间';
+                travelStatusP.textContent = `🚀 正在 ${catState.travelDestination} 旅行，预计 ${returnDate} 返回。`;
+                travelStatusP.classList.add('text-indigo-500');
+                
+                catMessage.textContent = `${catState.catName}：我出发啦！要好好照顾自己哦！`;
+                
+                // 禁用互动按钮
+                travelBtn.disabled = true;
+                travelBtn.textContent = '喵喵在路上...';
+                petBtn.disabled = true;
+                feedBtn.disabled = true;
+
             } else {
-                catVisual.innerHTML = '😿';
-                catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
+                // 在家状态
+                travelStatusP.textContent = `🏠 ${catState.catName} 在家等你。`;
+                travelStatusP.classList.remove('text-indigo-500');
+
+                if (moodPercent >= 90) {
+                    catMessage.textContent = `${catState.catName}：太开心啦！被爱着的感觉真好！`;
+                } else if (moodPercent >= 60) {
+                    catMessage.textContent = `${catState.catName}：喵~今天过得不错，谢谢你来看我。`;
+                } else if (moodPercent >= 30) {
+                    catMessage.textContent = `${catState.catName}：我有点无聊了，谁能陪我玩一会儿？`;
+                } else {
+                    catMessage.textContent = `${catState.catName}：...我感到好孤单... 快来抱抱我吧。`;
+                }
+                
+                // 启用互动按钮
+                travelBtn.disabled = false;
+                travelBtn.textContent = '打包出发';
+                petBtn.disabled = false;
+                feedBtn.disabled = false;
             }
             
-            // Last Interaction Info (使用保存的用户名)
+            // 3. 互动记录
             const lastTime = catState.lastVisitTimestamp ? new Date(catState.lastVisitTimestamp).toLocaleString('zh-CN') : '从未';
             const interactionUserName = catState.lastInteractionUserId === userId ? userName : catState.lastInteractionUserName;
             lastInteractionP.innerHTML = `上次互动：${interactionUserName} 在 ${lastTime}`;
             
-            // 当前用户名字显示
+            // 4. 当前用户名字显示
             currentUserNameDisplay.textContent = userName;
-            appContent.classList.remove('opacity-0'); // 显示应用内容
+            mainAppDiv.classList.remove('opacity-0'); // 显示应用内容
+            
+            // 5. 确保商店装扮 tab 是最新的
+            if (!document.getElementById('costume-shop').classList.contains('hidden')) {
+                renderCostumeShop();
+            }
         }
 
         // --- Firestore Functions ---
 
-        /**
-         * 获取猫咪状态的 Firestore DocumentReference (共享文档)
-         */
         function getCatRef() {
             const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
             return doc(db, catPath);
         }
 
-        /**
-         * 获取用户档案的 Firestore DocumentReference (私有文档)
-         */
         function getUserProfileRef(uid) {
              const profilePath = `/artifacts/${appId}/users/${uid}/user_profile/data`;
              return doc(db, profilePath);
@@ -350,30 +540,40 @@
                 if (docSnapshot.exists()) {
                     let data = docSnapshot.data();
 
+                    // 1. 处理心清衰减
                     const lastVisitMs = data.lastVisitTimestamp ? data.lastVisitTimestamp.toDate().getTime() : Date.now();
-                    
                     if (data.lastVisitTimestamp) {
                          data.mood = calculateMoodDecay(data.mood, lastVisitMs);
                     }
                     
-                    catState = { ...catState, ...data };
+                    // 2. 处理旅行返回
+                    const updatedData = processCatReturn(data);
                     
-                    if (data.mood !== catState.mood && isAuthReady) {
-                        saveCatState({ mood: catState.mood, lastVisitTimestamp: serverTimestamp() }, false); 
+                    catState = { ...catState, ...updatedData };
+                    
+                    // 3. 立即保存衰减/返回后的状态
+                    if (JSON.stringify(updatedData) !== JSON.stringify(data) || updatedData.mood !== data.mood && isAuthReady) {
+                        // 使用 setDoc 而不是 transaction 来更新 decay/return，因为 transaction 无法处理 onSnapshot 内部的 side effects
+                        setDoc(getCatRef(), updatedData); 
                     }
 
                     updateUI();
                 } else {
                     // Initialize the document if it doesn't exist (first load)
-                    catState = {
+                    setDoc(getCatRef(), {
                         mood: 100,
-                        currency: 100, // Starting currency
+                        currency: 100, 
                         lastVisitTimestamp: serverTimestamp(),
                         lastInteractionUserId: userId || 'system',
-                        lastInteractionUserName: userName || '系统', // 使用当前用户的名字初始化
-                        catName: '小萌喵'
-                    };
-                    setDoc(getCatRef(), catState);
+                        lastInteractionUserName: userName || '系统',
+                        catName: '小萌喵',
+                        isTraveling: false,
+                        outboundTimestamp: null,
+                        returnTimestamp: null,
+                        travelDestination: '家',
+                        inventory: { 'default': true }, 
+                        equippedCostume: 'default',
+                    });
                 }
             }, (error) => {
                 console.error("Error listening to cat state: ", error);
@@ -394,16 +594,13 @@
                 if (docSnap.exists()) {
                     userName = docSnap.data().name || '未知用户';
                     showToast(`欢迎回来，${userName}！`, 'info');
-                    // 名字已加载，可以开始监听猫咪状态
                     listenToCatState(); 
                 } else {
-                    // 第一次登录，提示设置名字
                     showNameModal(true);
                 }
             } catch (error) {
                 console.error("Error loading user profile:", error);
                 showToast("加载用户档案失败，请检查安全规则。", 'error');
-                // 即使失败也要尝试继续，使用默认名
                 listenToCatState(); 
             }
         }
@@ -424,10 +621,9 @@
                 userName = newName;
                 showNameModal(false);
                 showToast(`名字已保存为：${userName}`, 'success');
-                currentUserNameDisplay.textContent = userName; // 立即更新 UI
+                currentUserNameDisplay.textContent = userName;
                 
-                // 名字设置成功后才开始监听猫咪状态（如果是第一次）
-                if (catState.lastInteractionUserId === 'N/A') {
+                if (!catState.lastInteractionUserId || catState.lastInteractionUserId === 'N/A') {
                     listenToCatState();
                 }
 
@@ -457,6 +653,8 @@
                 let data = doc.data();
                 let newMood = data.mood;
                 let newCurrency = data.currency;
+                let newInventory = data.inventory || {};
+                let newEquippedCostume = data.equippedCostume || 'default';
                 
                 // 1. Apply Mood Boost (capped at 100)
                 if (updates.moodBoost) {
@@ -475,14 +673,30 @@
                     newCurrency += 5;
                 }
                 
-                // 3. Prepare final update object
+                // 3. Apply Inventory Updates
+                 if (updates.newCostumeId) {
+                    const costumeId = updates.newCostumeId;
+                    newInventory[costumeId] = true;
+                    delete updates.newCostumeId;
+                }
+                 if (updates.equipCostumeId !== undefined) {
+                    const costumeId = updates.equipCostumeId;
+                    if (newInventory[costumeId]) {
+                        newEquippedCostume = costumeId;
+                    }
+                    delete updates.equipCostumeId;
+                }
+                
+                // 4. Prepare final update object
                 const finalUpdates = {
                     ...updates,
                     mood: newMood,
                     currency: newCurrency,
+                    inventory: newInventory,
+                    equippedCostume: newEquippedCostume,
                     lastVisitTimestamp: serverTimestamp(),
                     lastInteractionUserId: userId,
-                    lastInteractionUserName: userName, // 新增：保存当前用户的名字
+                    lastInteractionUserName: userName,
                 };
                 
                 transaction.update(catRef, finalUpdates);
@@ -504,38 +718,95 @@
             }
             return false;
         }
+        
+        // --- Travel Logic ---
+        
+        window.sendCatTraveling = async function() {
+            if (!isAuthReady || catState.isTraveling) return;
 
-        // --- Interaction Handlers (保持不变) ---
+            // 随机选择目的地
+            const destinationData = TRAVEL_DESTINATIONS[Math.floor(Math.random() * TRAVEL_DESTINATIONS.length)];
+            const durationHours = Math.floor(Math.random() * (destinationData.max - destinationData.min + 1)) + destinationData.min;
+            
+            const now = Date.now();
+            const returnTimeMs = now + (durationHours * 60 * 60 * 1000); // Calculate return time in milliseconds
+
+            const success = await saveCatState({
+                isTraveling: true,
+                travelDestination: destinationData.name,
+                outboundTimestamp: serverTimestamp(), // Record when it left
+                returnTimestamp: Timestamp.fromMillis(returnTimeMs), // Record when it returns
+                // 旅行不加金币，但需要更新 visit time
+            }, false); 
+            
+            if (success) {
+                showToast(`🚀 喵喵背起小行囊去 ${destinationData.name} 啦！预计旅行 ${durationHours} 小时。`, 'info');
+                updateUI();
+            }
+        }
+
+
+        // --- Interaction Handlers ---
+        
         window.handlePet = async function() {
-            if (!isAuthReady) return;
+            if (!isAuthReady || catState.isTraveling) return;
             showToast("正在抚摸...");
             await saveCatState({ moodBoost: 10 });
         }
 
         window.handleFeed = async function() {
-            if (!isAuthReady) return;
+            if (!isAuthReady || catState.isTraveling) return;
             showToast("正在喂食...");
             await saveCatState({ moodBoost: 15 });
         }
 
-        window.buyItem = async function(itemName, cost) {
+        /** 购买物品或装扮 */
+        window.buyItem = async function(itemId, cost) {
             if (!isAuthReady) return;
 
-            let moodBoost = 0;
+            let updates = { currencyChange: -cost };
             let message = '';
-
-            if (itemName === 'ball') {
-                moodBoost = 20;
-                message = `🥳 购买了玩具毛线球，喵喵开心玩耍，心情+20！`;
-            } else if (itemName === 'scratcher') {
-                moodBoost = 50;
+            
+            if (itemId === 'ball') {
+                updates.moodBoost = 20;
+                message = `🥳 购买了玩具毛线球，喵喵心情+20！`;
+            } else if (itemId === 'scratcher') {
+                updates.moodBoost = 50;
                 message = `🤩 购买了豪华猫抓板，心情大增 +50！`;
+            } else if (COSTUMES[itemId]) {
+                updates.newCostumeId = itemId;
+                message = `🎉 恭喜获得装扮：${COSTUMES[itemId].name}！快去装备吧。`;
+            } else {
+                showToast("未知物品！", 'error');
+                return;
             }
 
-            const success = await saveCatState({ moodBoost: moodBoost, currencyChange: -cost }, false);
+            const success = await saveCatState(updates, false);
 
             if (success) {
                 showToast(message, 'success');
+                // 如果是装扮，自动切换到装扮屋 Tab
+                if (COSTUMES[itemId]) {
+                     switchShopTab('costume');
+                }
+            }
+        }
+        
+        /** 装备装扮 */
+        window.equipCostume = async function(costumeId) {
+            if (!isAuthReady || !catState.inventory[costumeId]) {
+                 showToast("你还没有这个装扮，快去商店购买吧！", 'error');
+                 return;
+            }
+            if (catState.equippedCostume === costumeId) return;
+
+            const success = await saveCatState({ equipCostumeId: costumeId }, false);
+            
+            if (success) {
+                const name = COSTUMES[costumeId].name;
+                const action = costumeId === 'default' ? '卸下了' : '装备了';
+                showToast(`✨ 你${action} ${name}！`, 'success');
+                renderCostumeShop(); // 重新渲染商店
             }
         }
 
@@ -546,7 +817,7 @@
             try {
                 if (firebaseConfig.apiKey.includes("YOUR_")) {
                     console.error("Firebase config is missing or invalid. Please replace the placeholder values.");
-                    document.getElementById('app').innerHTML = '<p class="text-center text-red-500 font-bold p-4">⚠️ 配置错误！请在代码中替换 YOUR_... 占位符为你的 Firebase 配置。</p>';
+                    mainAppDiv.innerHTML = '<p class="text-center text-red-500 font-bold p-4">⚠️ 配置错误！请在代码中替换 YOUR_... 占位符为你的 Firebase 配置。</p>';
                     return;
                 }
                 
@@ -561,14 +832,12 @@
                         userId = user.uid;
                         isAuthReady = true;
                         currentUserIdDisplay.textContent = `${userId.substring(0, 8)}...`;
-                        // 登录成功后，加载或设置用户名
                         loadOrCreateUserProfile(); 
                     } else {
-                        // 失败或退出时，使用默认值
                         userId = 'guest'; 
                         isAuthReady = true;
                         currentUserIdDisplay.textContent = 'Guest';
-                        listenToCatState(); // 仍然尝试监听公共状态
+                        listenToCatState(); 
                     }
                 });
 
@@ -583,15 +852,15 @@
                         <ul class="list-disc list-inside text-sm mt-1 space-y-1">
                             <li><strong>身份验证 (Auth)：</strong> 请在 Firebase 控制台的 "Authentication" -> "Sign-in method" 页面，确保 **Anonymous（匿名）** 登录提供商已启用。</li>
                             <li><strong>Firestore 数据库：</strong> 确保已在 Firebase 控制台中点击“创建数据库”按钮。</li>
-                            <li><strong>安全规则：</strong> **请务必更新安全规则** 以允许用户读写其个人档案（见下方提示）。</li>
+                            <li><strong>安全规则：</strong> 确保已发布正确的安全规则，允许访问 **共享猫咪状态** 和 **用户个人档案**。</li>
                         </ul>
                     </div>
                 `;
 
                 showToast(`Firebase 初始化失败: ${error.message}`, 'error');
-                appContainer.innerHTML = displayMessage;
-                appContainer.classList.remove('p-6', 'md:p-8', 'border-4');
-                appContainer.classList.add('p-0', 'border-0', 'shadow-none');
+                mainAppDiv.innerHTML = displayMessage;
+                mainAppDiv.classList.remove('p-6', 'md:p-8', 'border-4', 'opacity-0');
+                mainAppDiv.classList.add('p-0', 'border-0', 'shadow-none');
             }
         }
 
