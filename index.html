@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 小胡和小菜的喵喵喵～</title>
+    <title>🐱 旅行喵喵</title>
     <!-- 引入 Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 Inter 字体 -->
@@ -408,44 +408,6 @@
         }
 
         /**
-         * 处理旅行返回，计算奖励
-         * @param {object} data - 当前 Firestore 数据
-         * @returns {object} - 更新后的数据
-         */
-        function processCatReturn(data) {
-            if (!data.isTraveling || !data.returnTimestamp) return data;
-
-            const returnTimeMs = data.returnTimestamp.toDate().getTime();
-            const nowMs = Date.now();
-
-            if (nowMs >= returnTimeMs) {
-                // Cat has returned!
-                const destination = TRAVEL_DESTINATIONS.find(d => d.name === data.travelDestination.replace(' (急忙赶回中)', ''));
-                const destinationReward = destination ? destination.reward : 50;
-                
-                const rewardCurrency = destinationReward + Math.floor(Math.random() * 30); // 基础奖励 + 随机
-                const rewardMood = 20;
-
-                showToast(`🎉 喵喵从 ${data.travelDestination.replace(' (急忙赶回中)', '')} 旅行回来了！`, 'success');
-                showToast(`💰 获得了 ${rewardCurrency} 金币，心情值 +${rewardMood}！`, 'success');
-
-                // Update state for next transaction
-                data.isTraveling = false;
-                data.travelDestination = '家';
-                data.outboundTimestamp = null;
-                data.returnTimestamp = null;
-                data.currency += rewardCurrency;
-                data.mood = Math.min(100, data.mood + rewardMood);
-                
-                data.lastInteractionUserId = userId;
-                data.lastInteractionUserName = userName;
-
-                return data;
-            }
-            return data;
-        }
-
-        /**
          * 更新 UI
          */
         function updateUI() {
@@ -475,7 +437,7 @@
                 
                 let travelMessage;
                 // 判断是否处于呼唤后的急促返回状态（剩余时间小于等于5分钟）
-                const isRushingHome = timeRemainingMinutes <= 5 && timeRemainingMinutes > 0;
+                const isRushingHome = catState.travelDestination.includes('(急忙赶回中)') && timeRemainingMinutes > 0;
 
                 if (isRushingHome) {
                      travelMessage = `🚨 喵喵听到呼唤正在加速返回中！预计还有 ${timeRemainingMinutes} 分钟到家。`;
@@ -485,7 +447,7 @@
                      travelBtn.disabled = true;
                      travelBtn.textContent = '加速返程中...';
                      travelBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-red-500', 'hover:bg-red-600');
-                     travelBtn.classList.add('bg-gray-400');
+                     travelBtn.classList.add('bg-gray-400', 'text-white');
                 } else {
                      // 正常旅行状态
                      travelMessage = `🚀 正在 ${catState.travelDestination} 旅行，预计 ${returnDate} 返回。`;
@@ -496,8 +458,8 @@
                      travelBtn.disabled = false;
                      travelBtn.textContent = '📞 呼唤回家';
                      travelBtn.setAttribute('onclick', 'callCatHome()');
-                     travelBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-gray-400');
-                     travelBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                     travelBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-gray-400', 'text-text-dark');
+                     travelBtn.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white');
                 }
 
                 travelStatusP.textContent = travelMessage;
@@ -526,7 +488,7 @@
                 travelBtn.disabled = false;
                 travelBtn.textContent = '打包出发';
                 travelBtn.setAttribute('onclick', 'sendCatTraveling()');
-                travelBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'bg-gray-400');
+                travelBtn.classList.remove('bg-red-500', 'hover:bg-red-600', 'bg-gray-400', 'text-white');
                 travelBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600', 'text-text-dark');
                 
                 petBtn.disabled = false;
@@ -535,7 +497,8 @@
             
             // 3. 互动记录
             const lastTime = catState.lastVisitTimestamp ? new Date(catState.lastVisitTimestamp).toLocaleString('zh-CN') : '从未';
-            const interactionUserName = catState.lastInteractionUserId === userId ? userName : catState.lastInteractionUserName;
+            // 使用 catState 中存储的互动者名字，而不是当前用户的名字，避免显示错误
+            const interactionUserName = catState.lastInteractionUserName || '系统'; 
             lastInteractionP.innerHTML = `上次互动：${interactionUserName} 在 ${lastTime}`;
             
             // 4. 当前用户名字显示
@@ -548,7 +511,7 @@
             }
         }
 
-        // --- Firestore Functions (保持不变) ---
+        // --- Firestore Functions ---
 
         function getCatRef() {
             const catPath = `/artifacts/${appId}/public/data/cat_status/the_cat`;
@@ -561,32 +524,14 @@
         }
 
         /**
-         * 实时监听猫咪状态
+         * 实时监听猫咪状态 (只监听和更新 UI)
          */
         function listenToCatState() {
             if (!db) return; 
 
             onSnapshot(getCatRef(), (docSnapshot) => {
                 if (docSnapshot.exists()) {
-                    let data = docSnapshot.data();
-
-                    // 1. 处理心清衰减
-                    const lastVisitMs = data.lastVisitTimestamp ? data.lastVisitTimestamp.toDate().getTime() : Date.now();
-                    if (data.lastVisitTimestamp) {
-                         data.mood = calculateMoodDecay(data.mood, lastVisitMs);
-                    }
-                    
-                    // 2. 处理旅行返回
-                    const updatedData = processCatReturn(data);
-                    
-                    catState = { ...catState, ...updatedData };
-                    
-                    // 3. 立即保存衰减/返回后的状态
-                    if (JSON.stringify(updatedData) !== JSON.stringify(data) || updatedData.mood !== data.mood && isAuthReady) {
-                        // 使用 setDoc 而不是 transaction 来更新 decay/return，因为 transaction 无法处理 onSnapshot 内部的 side effects
-                        setDoc(getCatRef(), updatedData); 
-                    }
-
+                    catState = { ...catState, ...docSnapshot.data() };
                     updateUI();
                 } else {
                     // Initialize the document if it doesn't exist (first load)
@@ -612,6 +557,80 @@
         }
         
         /**
+         * 检查并应用自动更新 (衰减和旅行归来奖励) - 使用 Transaction 确保原子性
+         */
+        async function checkAndApplyAutomaticUpdates() {
+            if (!db || !isAuthReady) return;
+            
+            const catRef = getCatRef();
+            
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const doc = await transaction.get(catRef);
+                    if (!doc.exists()) return;
+                    
+                    let data = doc.data();
+                    let updated = false;
+                    
+                    // 1. Check and Apply Mood Decay
+                    const lastVisitMs = data.lastVisitTimestamp ? data.lastVisitTimestamp.toDate().getTime() : Date.now();
+                    const decayedMood = calculateMoodDecay(data.mood, lastVisitMs);
+                    
+                    if (decayedMood !== data.mood) {
+                        data.mood = decayedMood;
+                        updated = true;
+                    }
+
+                    // 2. Check and Apply Travel Return Rewards
+                    if (data.isTraveling && data.returnTimestamp) {
+                        const returnTimeMs = data.returnTimestamp.toDate().getTime();
+                        const nowMs = Date.now();
+                        
+                        if (nowMs >= returnTimeMs) {
+                            // Cat has returned! Claim rewards atomically.
+                            const destinationName = data.travelDestination.replace(' (急忙赶回中)', '');
+                            const destination = TRAVEL_DESTINATIONS.find(d => d.name === destinationName);
+                            const destinationReward = destination ? destination.reward : 50;
+                            
+                            const rewardCurrency = destinationReward + Math.floor(Math.random() * 30);
+                            const rewardMood = 20;
+                            
+                            // NOTE: Toasts are delayed until transaction success to ensure reward is committed.
+                            setTimeout(() => {
+                                showToast(`🎉 喵喵从 ${destinationName} 旅行回来了！`, 'success');
+                                showToast(`💰 获得了 ${rewardCurrency} 金币，心情值 +${rewardMood}！`, 'success');
+                            }, 100);
+
+                            // Update state for next transaction
+                            data.isTraveling = false;
+                            data.travelDestination = '家';
+                            data.outboundTimestamp = null;
+                            data.returnTimestamp = null;
+                            data.currency += rewardCurrency;
+                            data.mood = Math.min(100, data.mood + rewardMood);
+                            
+                            data.lastInteractionUserId = userId; // Mark who claimed the reward
+                            data.lastInteractionUserName = userName;
+
+                            updated = true;
+                        }
+                    }
+                    
+                    // 3. Commit update if necessary
+                    if (updated) {
+                        // Only update the timestamp if we are updating other data (decay/return)
+                        data.lastVisitTimestamp = serverTimestamp(); 
+                        transaction.update(catRef, data);
+                    }
+                });
+            } catch (error) {
+                // If transaction fails (e.g., contention), it will retry or the onSnapshot listener will eventually correct the state.
+                console.warn("Automatic update transaction failed:", error);
+            }
+        }
+
+
+        /**
          * 加载或创建用户档案
          */
         async function loadOrCreateUserProfile() {
@@ -624,7 +643,12 @@
                 if (docSnap.exists()) {
                     userName = docSnap.data().name || '未知用户';
                     showToast(`欢迎回来，${userName}！`, 'info');
+                    
+                    // 名字加载成功后，开始监听并检查自动更新
                     listenToCatState(); 
+                    checkAndApplyAutomaticUpdates(); // Check immediately on load
+                    setInterval(checkAndApplyAutomaticUpdates, 60000); // Check every minute in the background
+
                 } else {
                     showNameModal(true);
                 }
@@ -653,9 +677,10 @@
                 showToast(`名字已保存为：${userName}`, 'success');
                 currentUserNameDisplay.textContent = userName;
                 
-                if (!catState.lastInteractionUserId || catState.lastInteractionUserId === 'N/A') {
-                    listenToCatState();
-                }
+                // 名字设置成功后开始监听和更新
+                listenToCatState();
+                checkAndApplyAutomaticUpdates(); 
+                setInterval(checkAndApplyAutomaticUpdates, 60000);
 
             } catch (error) {
                 console.error("Error saving user name:", error);
@@ -724,7 +749,7 @@
                     currency: newCurrency,
                     inventory: newInventory,
                     equippedCostume: newEquippedCostume,
-                    lastVisitTimestamp: serverTimestamp(),
+                    lastVisitTimestamp: serverTimestamp(), // Update last visit time on ANY interaction
                     lastInteractionUserId: userId,
                     lastInteractionUserName: userName,
                 };
@@ -753,6 +778,12 @@
         
         window.sendCatTraveling = async function() {
             if (!isAuthReady || catState.isTraveling) return;
+
+            // 检查心情值是否足够高
+            if (catState.mood < 60) {
+                showToast("喵喵现在心情不太好，不想旅行。先陪它玩一会儿吧！", 'error');
+                return;
+            }
 
             // 随机选择目的地
             const destinationData = TRAVEL_DESTINATIONS[Math.floor(Math.random() * TRAVEL_DESTINATIONS.length)];
@@ -814,6 +845,12 @@
         /** 购买物品或装扮 */
         window.buyItem = async function(itemId, cost) {
             if (!isAuthReady) return;
+
+            // 检查是否已经拥有装扮
+            if (COSTUMES[itemId] && catState.inventory[itemId]) {
+                 showToast(`你已经拥有装扮 ${COSTUMES[itemId].name} 啦！`, 'error');
+                 return;
+            }
 
             let updates = { currencyChange: -cost };
             let message = '';
